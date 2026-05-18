@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<title>MisTickets</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0e0c; --surface: #1a1916; --surface2: #242320;
+    --accent: #e8c547; --accent2: #f0a500; --text: #f0ede6;
+    --muted: #7a7570; --danger: #e05a4e; --radius: 16px;
+    --font-head: 'Syne', sans-serif; --font-mono: 'DM Mono', monospace;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-mono); overflow: hidden; }
+  .screen { display: none; flex-direction: column; height: 100dvh; overflow: hidden; }
+  .screen.active { display: flex; }
+  .header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 12px; border-bottom: 1px solid #2a2825; flex-shrink: 0; }
+  .header-title { font-family: var(--font-head); font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .header-title span { color: var(--accent); }
+  .header-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .icon-btn { width: 40px; height: 40px; border-radius: 12px; background: var(--surface2); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); font-size: 18px; transition: background 0.15s; }
+  .icon-btn:active { background: var(--accent); color: var(--bg); }
+  .scroll-area { flex: 1; overflow-y: auto; padding: 16px; -webkit-overflow-scrolling: touch; }
+  .scroll-area::-webkit-scrollbar { display: none; }
+  .projects-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .project-card { background: var(--surface); border-radius: var(--radius); padding: 16px; cursor: pointer; border: 1.5px solid transparent; transition: border-color 0.15s, transform 0.1s; position: relative; overflow: hidden; }
+  .project-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform 0.2s; }
+  .project-card:active { transform: scale(0.97); border-color: var(--accent); }
+  .project-card:active::before { transform: scaleX(1); }
+  .project-emoji { font-size: 28px; margin-bottom: 10px; }
+  .project-name { font-family: var(--font-head); font-size: 14px; font-weight: 700; margin-bottom: 4px; line-height: 1.2; }
+  .project-count { font-size: 11px; color: var(--muted); }
+  .project-date { font-size: 10px; color: var(--muted); margin-top: 6px; }
+  .new-project-card { background: transparent; border: 1.5px dashed #3a3835; border-radius: var(--radius); padding: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 110px; gap: 8px; transition: border-color 0.15s; }
+  .new-project-card:active { border-color: var(--accent); }
+  .new-project-card .plus { font-size: 28px; color: var(--muted); }
+  .new-project-card span { font-size: 11px; color: var(--muted); }
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 60px 20px; color: var(--muted); text-align: center; }
+  .empty-state .big { font-size: 48px; }
+  .empty-state p { font-size: 13px; line-height: 1.5; }
+  .bottom-bar { flex-shrink: 0; padding: 12px 20px 24px; border-top: 1px solid #2a2825; display: flex; gap: 10px; }
+  .btn { flex: 1; padding: 14px; border: none; border-radius: var(--radius); font-family: var(--font-mono); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-primary { background: var(--accent); color: var(--bg); }
+  .btn-primary:active { background: var(--accent2); transform: scale(0.98); }
+  .btn-secondary { background: var(--surface2); color: var(--text); }
+  .btn-secondary:active { background: #2e2c29; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: flex-end; justify-content: center; backdrop-filter: blur(4px); }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: 24px 24px 0 0; padding: 24px 20px 36px; width: 100%; max-width: 480px; animation: slideUp 0.25s ease; }
+  @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-handle { width: 36px; height: 4px; background: #3a3835; border-radius: 2px; margin: 0 auto 20px; }
+  .modal-title { font-family: var(--font-head); font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+  .input-group { margin-bottom: 16px; }
+  .input-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+  .input-field { width: 100%; padding: 12px 14px; background: var(--bg); border: 1.5px solid #2a2825; border-radius: 12px; color: var(--text); font-family: var(--font-mono); font-size: 14px; outline: none; transition: border-color 0.15s; }
+  .input-field:focus { border-color: var(--accent); }
+  .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 8px; }
+  .emoji-opt { padding: 10px; text-align: center; font-size: 22px; background: var(--bg); border-radius: 10px; cursor: pointer; border: 1.5px solid transparent; transition: all 0.1s; }
+  .emoji-opt.selected { border-color: var(--accent); background: rgba(232,197,71,0.1); }
+  .proj-header { display: flex; align-items: center; gap: 14px; padding: 18px 20px 14px; border-bottom: 1px solid #2a2825; flex-shrink: 0; }
+  .back-btn { width: 36px; height: 36px; border-radius: 10px; background: var(--surface2); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); font-size: 16px; flex-shrink: 0; }
+  .proj-info { flex: 1; min-width: 0; }
+  .proj-info-name { font-family: var(--font-head); font-size: 18px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .proj-info-count { font-size: 11px; color: var(--muted); }
+  .tickets-list { display: flex; flex-direction: column; gap: 10px; }
+  .ticket-card { background: var(--surface); border-radius: 14px; overflow: hidden; display: flex; align-items: stretch; border: 1px solid #2a2825; transition: border-color 0.15s; }
+  .ticket-card:active { border-color: var(--accent); }
+  .ticket-thumb { width: 80px; flex-shrink: 0; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 28px; overflow: hidden; }
+  .ticket-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .ticket-info { flex: 1; padding: 12px 14px; min-width: 0; cursor: pointer; }
+  .ticket-name { font-size: 13px; font-weight: 500; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ticket-date { font-size: 11px; color: var(--muted); }
+  .ticket-size { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .ticket-actions { display: flex; flex-direction: column; padding: 8px; gap: 6px; }
+  .ticket-btn { width: 32px; height: 32px; border-radius: 8px; border: none; background: var(--surface2); color: var(--text); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; }
+  .ticket-btn:active { background: var(--accent); color: var(--bg); }
+  .ticket-btn.del:active { background: var(--danger); color: #fff; }
+  .cam-btn { width: 64px; height: 64px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: 0 4px 20px rgba(232,197,71,0.4); transition: all 0.15s; flex-shrink: 0; }
+  .cam-btn:active { transform: scale(0.93); }
+  .viewer-overlay { display: none; position: fixed; inset: 0; background: #000; z-index: 200; flex-direction: column; }
+  .viewer-overlay.open { display: flex; }
+  .viewer-img { flex: 1; object-fit: contain; width: 100%; }
+  .viewer-bar { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 32px; background: rgba(0,0,0,0.8); }
+  .viewer-name { font-size: 13px; color: var(--text); flex: 1; }
+  .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface2); color: var(--text); padding: 10px 20px; border-radius: 100px; font-size: 13px; opacity: 0; transition: all 0.2s; z-index: 300; pointer-events: none; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .stats-bar { display: flex; gap: 10px; margin-bottom: 16px; }
+  .stat-chip { background: var(--surface); border-radius: 10px; padding: 8px 12px; font-size: 11px; color: var(--muted); flex: 1; text-align: center; }
+  .stat-chip strong { display: block; font-size: 18px; color: var(--text); font-family: var(--font-head); }
+  .confirm-modal { display: none; position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; padding: 20px; }
+  .confirm-modal.open { display: flex; }
+  .confirm-box { background: var(--surface); border-radius: 20px; padding: 24px; width: 100%; max-width: 320px; text-align: center; }
+  .confirm-box h3 { font-family: var(--font-head); font-size: 16px; margin-bottom: 8px; }
+  .confirm-box p { font-size: 12px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
+  .confirm-btns { display: flex; gap: 10px; }
+  .export-list { display: flex; flex-direction: column; gap: 8px; }
+  .export-opt { display: flex; align-items: center; gap: 14px; padding: 14px; background: var(--bg); border-radius: 12px; cursor: pointer; border: 1.5px solid transparent; transition: background 0.1s; }
+  .export-opt:active { border-color: var(--accent); }
+  .export-opt-icon { font-size: 24px; flex-shrink: 0; }
+  .export-opt-title { font-size: 13px; font-weight: 500; }
+  .export-opt-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .section-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; margin-top: 4px; }
+  input[type="file"] { display: none; }
+</style>
+</head>
+<body>
+
+<div class="screen active" id="screen-home">
+  <div class="header">
+    <div>
+      <div class="header-title">Mis<span>Tickets</span></div>
+      <div class="header-sub" id="home-subtitle">Cargando...</div>
+    </div>
+    <button class="icon-btn" onclick="openExport()">⬆</button>
+  </div>
+  <div class="scroll-area">
+    <div class="empty-state" id="empty-home">
+      <div class="big">🗂️</div>
+      <p>Aún no tienes proyectos.<br>Crea uno para empezar a guardar tickets.</p>
+    </div>
+    <div class="projects-grid" id="projects-grid" style="display:none"></div>
+  </div>
+  <div class="bottom-bar">
+    <button class="btn btn-secondary" onclick="openNewProject()">＋ Proyecto</button>
+  </div>
+</div>
+
+<div class="screen" id="screen-project">
+  <div class="proj-header">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <div class="proj-info">
+      <div class="proj-info-name" id="proj-title">Proyecto</div>
+      <div class="proj-info-count" id="proj-count">0 tickets</div>
+    </div>
+    <button class="icon-btn" onclick="openProjExport()">⬆</button>
+  </div>
+  <div class="scroll-area" id="tickets-container">
+    <div class="stats-bar" id="proj-stats" style="display:none">
+      <div class="stat-chip"><strong id="stat-count">0</strong>tickets</div>
+      <div class="stat-chip"><strong id="stat-size">0</strong>MB total</div>
+    </div>
+    <div class="section-label">TICKETS</div>
+    <div class="empty-state" id="empty-project">
+      <div class="big">📷</div>
+      <p>Sin tickets aún.<br>Toca el botón de cámara para añadir el primero.</p>
+    </div>
+    <div class="tickets-list" id="tickets-list"></div>
+  </div>
+  <div class="bottom-bar" style="align-items:center;justify-content:center;gap:16px;">
+    <button class="btn btn-secondary" style="flex:0 0 auto;padding:14px 20px;" onclick="confirmDeleteProject()">🗑 Borrar</button>
+    <button class="cam-btn" onclick="openCamera()">📷</button>
+    <button class="btn btn-secondary" style="flex:0 0 auto;padding:14px 20px;" onclick="openGallery()">🖼 Galería</button>
+  </div>
+</div>
+
+<input type="file" id="camera-input" accept="image/*" capture="environment" onchange="handlePhoto(event)">
+<input type="file" id="gallery-input" accept="image/*" multiple onchange="handleGallery(event)">
+
+<div class="modal-overlay" id="modal-new-project" onclick="closeModal('modal-new-project')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Nuevo proyecto</div>
+    <div class="input-group">
+      <label class="input-label">Nombre</label>
+      <input class="input-field" id="proj-name-input" placeholder="Ej: Viaje Madrid mayo" maxlength="40" onkeydown="if(event.key==='Enter')createProject()">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Icono</label>
+      <div class="emoji-grid" id="emoji-grid"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-new-project')">Cancelar</button>
+      <button class="btn btn-primary" onclick="createProject()">Crear ✓</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-export" onclick="closeModal('modal-export')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="export-title">Exportar</div>
+    <div class="export-list">
+      <div class="export-opt" onclick="shareTickets()">
+        <div class="export-opt-icon">↗️</div>
+        <div class="export-opt-info">
+          <div class="export-opt-title">Compartir fotos</div>
+          <div class="export-opt-sub">Enviar por WhatsApp, Drive, email…</div>
+        </div>
+      </div>
+      <div class="export-opt" onclick="exportIndividual()">
+        <div class="export-opt-icon">💾</div>
+        <div class="export-opt-info">
+          <div class="export-opt-title">Guardar en el móvil</div>
+          <div class="export-opt-sub">Descarga cada imagen a tu galería</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="viewer-overlay" id="viewer">
+  <img class="viewer-img" id="viewer-img" src="" alt="">
+  <div class="viewer-bar">
+    <div class="viewer-name" id="viewer-name"></div>
+    <button class="icon-btn" onclick="downloadViewer()">⬇</button>
+    <button class="icon-btn" style="margin-left:8px;" onclick="closeViewer()">✕</button>
+  </div>
+</div>
+
+<div class="confirm-modal" id="confirm-modal">
+  <div class="confirm-box">
+    <h3 id="confirm-title">¿Eliminar?</h3>
+    <p id="confirm-msg">Esta acción no se puede deshacer.</p>
+    <div class="confirm-btns">
+      <button class="btn btn-secondary" onclick="closeConfirm()">Cancelar</button>
+      <button class="btn" style="background:var(--danger);color:#fff;" id="confirm-ok-btn">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let projects = [], currentProjectId = null, exportMode = 'all', viewerData = null;
+const EMOJIS = ['🧾','📄','🗂️','💼','🏢','✈️','🚗','🍽️','🛒','🏨','⚙️','📦','💡','🔧','📋','🎯','💰','🧳','🖨️','📌'];
+const DB_NAME = 'MisTickets', STORE = 'images';
+let db;
+
+function openDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(STORE);
+    req.onsuccess = e => { db = e.target.result; res(db); };
+    req.onerror = () => rej('DB error');
+  });
+}
+function saveImage(id, dataUrl) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(dataUrl, id);
+    tx.oncomplete = res; tx.onerror = rej;
+  });
+}
+function getImage(id) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).get(id);
+    req.onsuccess = () => res(req.result); req.onerror = rej;
+  });
+}
+function deleteImage(id) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).delete(id);
+    tx.oncomplete = res; tx.onerror = rej;
+  });
+}
+function save() {
+  const meta = projects.map(p => ({ ...p, tickets: p.tickets.map(t => ({ id: t.id, name: t.name, date: t.date, size: t.size })) }));
+  try { localStorage.setItem('mst_meta', JSON.stringify(meta)); } catch(e) {}
+}
+async function init() {
+  await openDB();
+  try { const r = localStorage.getItem('mst_meta'); projects = r ? JSON.parse(r).map(p => ({ ...p, tickets: p.tickets.map(t => ({ ...t, dataUrl: null })) })) : []; } catch(e) { projects = []; }
+  renderHome();
+}
+function renderHome() {
+  const grid = document.getElementById('projects-grid');
+  const empty = document.getElementById('empty-home');
+  const total = projects.reduce((s, p) => s + p.tickets.length, 0);
+  document.getElementById('home-subtitle').textContent = `${projects.length} proyecto${projects.length!==1?'s':''} · ${total} ticket${total!==1?'s':''}`;
+  if (!projects.length) { empty.style.display='flex'; grid.style.display='none'; return; }
+  empty.style.display='none'; grid.style.display='grid';
+  grid.innerHTML='';
+  projects.forEach(p => {
+    const card = document.createElement('div');
+    card.className='project-card';
+    const last = p.tickets.length ? new Date(p.tickets[p.tickets.length-1].date).toLocaleDateString('es-ES',{day:'2-digit',month:'short'}) : '—';
+    card.innerHTML=`<div class="project-emoji">${p.emoji}</div><div class="project-name">${p.name}</div><div class="project-count">${p.tickets.length} ticket${p.tickets.length!==1?'s':''}</div><div class="project-date">Último: ${last}</div>`;
+    card.onclick=()=>openProject(p.id); grid.appendChild(card);
+  });
+  const nc=document.createElement('div'); nc.className='new-project-card';
+  nc.innerHTML='<div class="plus">＋</div><span>Nuevo proyecto</span>'; nc.onclick=openNewProject; grid.appendChild(nc);
+}
+function openProject(id) { currentProjectId=id; const p=getProject(); document.getElementById('proj-title').textContent=`${p.emoji} ${p.name}`; showScreen('screen-project'); renderTickets(); }
+function getProject() { return projects.find(p=>p.id===currentProjectId); }
+async function renderTickets() {
+  const p=getProject(); const list=document.getElementById('tickets-list'); const empty=document.getElementById('empty-project'); const stats=document.getElementById('proj-stats');
+  document.getElementById('proj-count').textContent=`${p.tickets.length} ticket${p.tickets.length!==1?'s':''}`;
+  if (!p.tickets.length) { empty.style.display='flex'; list.style.display='none'; stats.style.display='none'; return; }
+  empty.style.display='none'; list.style.display='flex'; stats.style.display='flex';
+  document.getElementById('stat-count').textContent=p.tickets.length;
+  document.getElementById('stat-size').textContent=(p.tickets.reduce((s,t)=>s+(t.size||0),0)/1048576).toFixed(1);
+  list.innerHTML='';
+  for (const t of p.tickets) {
+    const card=document.createElement('div'); card.className='ticket-card';
+    card.innerHTML=`<div class="ticket-thumb" id="thumb-${t.id}"><span>🧾</span></div><div class="ticket-info" onclick="viewTicket('${t.id}')"><div class="ticket-name">${t.name}</div><div class="ticket-date">${new Date(t.date).toLocaleString('es-ES',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div><div class="ticket-size">${t.size?(t.size/1024).toFixed(0)+' KB':''}</div></div><div class="ticket-actions"><button class="ticket-btn" onclick="downloadTicket('${t.id}')">⬇</button><button class="ticket-btn del" onclick="confirmDeleteTicket('${t.id}')">🗑</button></div>`;
+    list.appendChild(card);
+    getImage(t.id).then(url=>{ if(!url)return; const th=document.getElementById(`thumb-${t.id}`); if(th){th.innerHTML=`<img src="${url}" alt="">`;}  t.dataUrl=url; });
+  }
+}
+function openCamera() { document.getElementById('camera-input').click(); }
+function openGallery() { document.getElementById('gallery-input').click(); }
+async function handlePhoto(e) { const f=e.target.files[0]; if(!f)return; await processFile(f); e.target.value=''; }
+async function handleGallery(e) { for(const f of Array.from(e.target.files)) await processFile(f); e.target.value=''; }
+async function processFile(file) {
+  const p=getProject(); const id='tk_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+  const name=file.name.replace(/\.[^.]+$/,'').replace(/[_-]/g,' ').trim()||`ticket_${p.tickets.length+1}`;
+  const dataUrl=await new Promise((r)=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(file); });
+  await saveImage(id,dataUrl);
+  p.tickets.push({id,name,date:new Date().toISOString(),size:file.size,dataUrl});
+  save(); renderTickets(); renderHome(); showToast('✓ Ticket guardado');
+}
+async function viewTicket(id) {
+  const p=getProject(); const t=p.tickets.find(x=>x.id===id); if(!t)return;
+  const url=t.dataUrl||await getImage(id);
+  viewerData={id,name:t.name,url};
+  document.getElementById('viewer-img').src=url; document.getElementById('viewer-name').textContent=t.name;
+  document.getElementById('viewer').classList.add('open');
+}
+function closeViewer() { document.getElementById('viewer').classList.remove('open'); viewerData=null; }
+function downloadViewer() { if(!viewerData)return; dl(viewerData.url,viewerData.name+'.jpg'); }
+async function downloadTicket(id) { const p=getProject(); const t=p.tickets.find(x=>x.id===id); if(!t)return; const url=t.dataUrl||await getImage(id); dl(url,t.name+'.jpg'); showToast('⬇ Descargando...'); }
+function dl(url,name) { const a=document.createElement('a'); a.href=url; a.download=name; a.click(); }
+function confirmDeleteTicket(id) { const p=getProject(); const t=p.tickets.find(x=>x.id===id); showConfirm('¿Eliminar ticket?',`Se borrará "${t.name}" permanentemente.`,async()=>{ await deleteImage(id); p.tickets=p.tickets.filter(x=>x.id!==id); save(); renderTickets(); renderHome(); showToast('Ticket eliminado'); }); }
+function confirmDeleteProject() { const p=getProject(); showConfirm('¿Eliminar proyecto?',`Se borrarán "${p.name}" y sus ${p.tickets.length} tickets.`,async()=>{ for(const t of p.tickets)await deleteImage(t.id); projects=projects.filter(x=>x.id!==currentProjectId); save(); goHome(); showToast('Proyecto eliminado'); }); }
+let selectedEmoji=EMOJIS[0];
+function openNewProject() {
+  selectedEmoji=EMOJIS[0]; document.getElementById('proj-name-input').value='';
+  const grid=document.getElementById('emoji-grid'); grid.innerHTML='';
+  EMOJIS.forEach((e,i)=>{ const d=document.createElement('div'); d.className='emoji-opt'+(i===0?' selected':''); d.textContent=e; d.onclick=()=>{ selectedEmoji=e; grid.querySelectorAll('.emoji-opt').forEach(x=>x.classList.remove('selected')); d.classList.add('selected'); }; grid.appendChild(d); });
+  openModal('modal-new-project'); setTimeout(()=>document.getElementById('proj-name-input').focus(),300);
+}
+function createProject() { const name=document.getElementById('proj-name-input').value.trim(); if(!name){showToast('Escribe un nombre');return;} projects.unshift({id:'pr_'+Date.now(),name,emoji:selectedEmoji,created:new Date().toISOString(),tickets:[]}); save(); renderHome(); closeModal('modal-new-project'); showToast('✓ Proyecto creado'); }
+function openExport() { exportMode='all'; document.getElementById('export-title').textContent='Exportar todo'; openModal('modal-export'); }
+function openProjExport() { exportMode='project'; document.getElementById('export-title').textContent='Exportar proyecto'; openModal('modal-export'); }
+async function getExportTickets() { return exportMode==='project'?getProject().tickets:projects.flatMap(p=>p.tickets); }
+async function shareTickets() {
+  closeModal('modal-export'); const tickets=await getExportTickets(); if(!tickets.length){showToast('Sin tickets');return;}
+  if(!navigator.share){showToast('Usa "Guardar en el móvil"');return;}
+  const files=[];
+  for(const t of tickets){ const url=t.dataUrl||await getImage(t.id); if(!url)continue; const res=await fetch(url); const blob=await res.blob(); files.push(new File([blob],t.name+'.jpg',{type:'image/jpeg'})); }
+  try{await navigator.share({files,title:'Tickets de empresa'});}catch(e){if(e.name!=='AbortError')showToast('Error al compartir');}
+}
+async function exportIndividual() {
+  closeModal('modal-export'); const tickets=await getExportTickets(); if(!tickets.length){showToast('Sin tickets');return;}
+  for(const t of tickets){ const url=t.dataUrl||await getImage(t.id); if(!url)continue; await new Promise(r=>setTimeout(r,200)); dl(url,t.name+'.jpg'); }
+  showToast(`⬇ ${tickets.length} tickets guardados`);
+}
+function showScreen(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function goHome() { showScreen('screen-home'); renderHome(); }
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+let toastTimer;
+function showToast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2000); }
+function showConfirm(title,msg,cb) { document.getElementById('confirm-title').textContent=title; document.getElementById('confirm-msg').textContent=msg; document.getElementById('confirm-ok-btn').onclick=()=>{closeConfirm();cb();}; document.getElementById('confirm-modal').classList.add('open'); }
+function closeConfirm() { document.getElementById('confirm-modal').classList.remove('open'); }
+init();
+</script>
+</body>
+</html>

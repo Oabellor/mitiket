@@ -1,0 +1,13 @@
+{
+  "name": "mistickets",
+  "version": "1.0.0",
+  "description": "App de gestión de tickets de empresa",
+  "scripts": {
+    "build": "echo ok"
+  },
+  "dependencies": {
+    "@capacitor/android": "6.1.2",
+    "@capacitor/core": "6.1.2",
+    "@capacitor/cli": "6.1.2"
+  }
+}

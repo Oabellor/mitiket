@@ -1,0 +1,9 @@
+{
+  "appId": "com.mistickets.app",
+  "appName": "MisTickets",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  }
+}
