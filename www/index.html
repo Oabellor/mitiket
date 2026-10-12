@@ -4,216 +4,384 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
-<title>MisTickets</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AEtickets">
+<meta name="theme-color" content="#0f0e0c">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>AEtickets</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0f0e0c; --surface: #1a1916; --surface2: #242320;
-    --accent: #e8c547; --accent2: #f0a500; --text: #f0ede6;
-    --muted: #7a7570; --danger: #e05a4e; --radius: 16px;
-    --font-head: 'Syne', sans-serif; --font-mono: 'DM Mono', monospace;
-  }
-  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-mono); overflow: hidden; }
-  .screen { display: none; flex-direction: column; height: 100dvh; overflow: hidden; }
-  .screen.active { display: flex; }
-  .header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 12px; border-bottom: 1px solid #2a2825; flex-shrink: 0; }
-  .header-title { font-family: var(--font-head); font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
-  .header-title span { color: var(--accent); }
-  .header-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .icon-btn { width: 40px; height: 40px; border-radius: 12px; background: var(--surface2); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); font-size: 18px; transition: background 0.15s; }
-  .icon-btn:active { background: var(--accent); color: var(--bg); }
-  .scroll-area { flex: 1; overflow-y: auto; padding: 16px; -webkit-overflow-scrolling: touch; }
-  .scroll-area::-webkit-scrollbar { display: none; }
-  .projects-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .project-card { background: var(--surface); border-radius: var(--radius); padding: 16px; cursor: pointer; border: 1.5px solid transparent; transition: border-color 0.15s, transform 0.1s; position: relative; overflow: hidden; }
-  .project-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform 0.2s; }
-  .project-card:active { transform: scale(0.97); border-color: var(--accent); }
-  .project-card:active::before { transform: scaleX(1); }
-  .project-emoji { font-size: 28px; margin-bottom: 10px; }
-  .project-name { font-family: var(--font-head); font-size: 14px; font-weight: 700; margin-bottom: 4px; line-height: 1.2; }
-  .project-count { font-size: 11px; color: var(--muted); }
-  .project-date { font-size: 10px; color: var(--muted); margin-top: 6px; }
-  .new-project-card { background: transparent; border: 1.5px dashed #3a3835; border-radius: var(--radius); padding: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 110px; gap: 8px; transition: border-color 0.15s; }
-  .new-project-card:active { border-color: var(--accent); }
-  .new-project-card .plus { font-size: 28px; color: var(--muted); }
-  .new-project-card span { font-size: 11px; color: var(--muted); }
-  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 60px 20px; color: var(--muted); text-align: center; }
-  .empty-state .big { font-size: 48px; }
-  .empty-state p { font-size: 13px; line-height: 1.5; }
-  .bottom-bar { flex-shrink: 0; padding: 12px 20px 24px; border-top: 1px solid #2a2825; display: flex; gap: 10px; }
-  .btn { flex: 1; padding: 14px; border: none; border-radius: var(--radius); font-family: var(--font-mono); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-  .btn-primary { background: var(--accent); color: var(--bg); }
-  .btn-primary:active { background: var(--accent2); transform: scale(0.98); }
-  .btn-secondary { background: var(--surface2); color: var(--text); }
-  .btn-secondary:active { background: #2e2c29; }
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: flex-end; justify-content: center; backdrop-filter: blur(4px); }
-  .modal-overlay.open { display: flex; }
-  .modal { background: var(--surface); border-radius: 24px 24px 0 0; padding: 24px 20px 36px; width: 100%; max-width: 480px; animation: slideUp 0.25s ease; }
-  @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-  .modal-handle { width: 36px; height: 4px; background: #3a3835; border-radius: 2px; margin: 0 auto 20px; }
-  .modal-title { font-family: var(--font-head); font-size: 18px; font-weight: 800; margin-bottom: 20px; }
-  .input-group { margin-bottom: 16px; }
-  .input-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
-  .input-field { width: 100%; padding: 12px 14px; background: var(--bg); border: 1.5px solid #2a2825; border-radius: 12px; color: var(--text); font-family: var(--font-mono); font-size: 14px; outline: none; transition: border-color 0.15s; }
-  .input-field:focus { border-color: var(--accent); }
-  .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 8px; }
-  .emoji-opt { padding: 10px; text-align: center; font-size: 22px; background: var(--bg); border-radius: 10px; cursor: pointer; border: 1.5px solid transparent; transition: all 0.1s; }
-  .emoji-opt.selected { border-color: var(--accent); background: rgba(232,197,71,0.1); }
-  .proj-header { display: flex; align-items: center; gap: 14px; padding: 18px 20px 14px; border-bottom: 1px solid #2a2825; flex-shrink: 0; }
-  .back-btn { width: 36px; height: 36px; border-radius: 10px; background: var(--surface2); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); font-size: 16px; flex-shrink: 0; }
-  .proj-info { flex: 1; min-width: 0; }
-  .proj-info-name { font-family: var(--font-head); font-size: 18px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .proj-info-count { font-size: 11px; color: var(--muted); }
-  .tickets-list { display: flex; flex-direction: column; gap: 10px; }
-  .ticket-card { background: var(--surface); border-radius: 14px; overflow: hidden; display: flex; align-items: stretch; border: 1px solid #2a2825; transition: border-color 0.15s; }
-  .ticket-card:active { border-color: var(--accent); }
-  .ticket-thumb { width: 80px; flex-shrink: 0; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 28px; overflow: hidden; }
-  .ticket-thumb img { width: 100%; height: 100%; object-fit: cover; }
-  .ticket-info { flex: 1; padding: 12px 14px; min-width: 0; cursor: pointer; }
-  .ticket-name { font-size: 13px; font-weight: 500; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .ticket-date { font-size: 11px; color: var(--muted); }
-  .ticket-size { font-size: 10px; color: var(--muted); margin-top: 2px; }
-  .ticket-actions { display: flex; flex-direction: column; padding: 8px; gap: 6px; }
-  .ticket-btn { width: 32px; height: 32px; border-radius: 8px; border: none; background: var(--surface2); color: var(--text); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; }
-  .ticket-btn:active { background: var(--accent); color: var(--bg); }
-  .ticket-btn.del:active { background: var(--danger); color: #fff; }
-  .cam-btn { width: 64px; height: 64px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: 0 4px 20px rgba(232,197,71,0.4); transition: all 0.15s; flex-shrink: 0; }
-  .cam-btn:active { transform: scale(0.93); }
-  .viewer-overlay { display: none; position: fixed; inset: 0; background: #000; z-index: 200; flex-direction: column; }
-  .viewer-overlay.open { display: flex; }
-  .viewer-img { flex: 1; object-fit: contain; width: 100%; }
-  .viewer-bar { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 32px; background: rgba(0,0,0,0.8); }
-  .viewer-name { font-size: 13px; color: var(--text); flex: 1; }
-  .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface2); color: var(--text); padding: 10px 20px; border-radius: 100px; font-size: 13px; opacity: 0; transition: all 0.2s; z-index: 300; pointer-events: none; white-space: nowrap; }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  .stats-bar { display: flex; gap: 10px; margin-bottom: 16px; }
-  .stat-chip { background: var(--surface); border-radius: 10px; padding: 8px 12px; font-size: 11px; color: var(--muted); flex: 1; text-align: center; }
-  .stat-chip strong { display: block; font-size: 18px; color: var(--text); font-family: var(--font-head); }
-  .confirm-modal { display: none; position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; padding: 20px; }
-  .confirm-modal.open { display: flex; }
-  .confirm-box { background: var(--surface); border-radius: 20px; padding: 24px; width: 100%; max-width: 320px; text-align: center; }
-  .confirm-box h3 { font-family: var(--font-head); font-size: 16px; margin-bottom: 8px; }
-  .confirm-box p { font-size: 12px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
-  .confirm-btns { display: flex; gap: 10px; }
-  .export-list { display: flex; flex-direction: column; gap: 8px; }
-  .export-opt { display: flex; align-items: center; gap: 14px; padding: 14px; background: var(--bg); border-radius: 12px; cursor: pointer; border: 1.5px solid transparent; transition: background 0.1s; }
-  .export-opt:active { border-color: var(--accent); }
-  .export-opt-icon { font-size: 24px; flex-shrink: 0; }
-  .export-opt-title { font-size: 13px; font-weight: 500; }
-  .export-opt-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .section-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; margin-top: 4px; }
-  input[type="file"] { display: none; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0e0c;--surface:#1a1916;--surface2:#242320;--surface3:#2e2c29;
+  --accent:#e8c547;--accent2:#f0a500;--text:#f0ede6;
+  --muted:#7a7570;--danger:#e05a4e;--success:#4caf7d;
+  --radius:16px;--font-head:'Syne',sans-serif;--font-mono:'DM Mono',monospace;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-mono);overflow:hidden}
+.screen{display:none;flex-direction:column;height:100dvh;overflow:hidden}
+.screen.active{display:flex}
+.scroll-area{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
+.scroll-area::-webkit-scrollbar{display:none}
+
+/* HEADER */
+.header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 12px;border-bottom:1px solid #2a2825;flex-shrink:0}
+.header-title{font-family:var(--font-head);font-size:22px;font-weight:800}
+.header-title span{color:var(--accent)}
+.header-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.icon-btn{width:40px;height:40px;border-radius:12px;background:var(--surface2);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text);font-size:18px;flex-shrink:0}
+.icon-btn:active{background:var(--accent);color:var(--bg)}
+
+/* BOTTOM BAR */
+.bottom-bar{flex-shrink:0;padding:12px 20px 28px;border-top:1px solid #2a2825;display:flex;gap:10px;align-items:center}
+.btn{flex:1;padding:14px;border:none;border-radius:var(--radius);font-family:var(--font-mono);font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary{background:var(--accent);color:var(--bg)}
+.btn-primary:active{background:var(--accent2)}
+.btn-secondary{background:var(--surface2);color:var(--text)}
+.btn-secondary:active{background:var(--surface3)}
+.btn-danger{background:rgba(224,90,78,0.15);color:var(--danger)}
+.cam-btn{width:60px;height:60px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 20px rgba(232,197,71,0.35);flex-shrink:0}
+.cam-btn:active{transform:scale(0.93)}
+
+/* MESES */
+.month-section{margin-bottom:24px}
+.month-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.month-label{font-family:var(--font-head);font-size:13px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:2px;flex:1}
+.month-zip-btn{display:flex;align-items:center;gap:6px;background:var(--accent);color:var(--bg);border:none;border-radius:10px;padding:7px 12px;font-family:var(--font-mono);font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap}
+.month-zip-btn:active{background:var(--accent2)}
+.month-divider{height:1px;background:#2a2825;margin-bottom:10px}
+
+.projects-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.project-card{background:var(--surface);border-radius:var(--radius);padding:14px;cursor:pointer;border:1.5px solid transparent;position:relative;overflow:hidden;transition:transform 0.1s}
+.project-card:active{border-color:var(--accent);transform:scale(0.97)}
+.project-icon{width:40px;height:40px;margin-bottom:10px;flex-shrink:0}
+.project-name{font-family:var(--font-head);font-size:13px;font-weight:700;margin-bottom:3px;line-height:1.2}
+.project-count{font-size:11px;color:var(--muted)}
+.project-amount{font-size:12px;color:var(--accent);margin-top:4px}
+.new-project-card{background:transparent;border:1.5px dashed #3a3835;border-radius:var(--radius);padding:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:110px;gap:6px}
+.new-project-card:active{border-color:var(--accent)}
+.new-project-card .plus{font-size:24px;color:var(--muted)}
+.new-project-card span{font-size:11px;color:var(--muted)}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:60px 20px;color:var(--muted);text-align:center}
+.empty-state .big{font-size:48px}
+.empty-state p{font-size:13px;line-height:1.5}
+
+/* PROYECTO */
+.proj-header{display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid #2a2825;flex-shrink:0}
+.back-btn{width:36px;height:36px;border-radius:10px;background:var(--surface2);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text);font-size:16px;flex-shrink:0}
+.proj-info{flex:1;min-width:0}
+.proj-info-name{font-family:var(--font-head);font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proj-info-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.stats-bar{display:flex;gap:8px;margin-bottom:14px}
+.stat-chip{background:var(--surface);border-radius:10px;padding:8px 10px;font-size:11px;color:var(--muted);flex:1;text-align:center}
+.stat-chip strong{display:block;font-size:16px;color:var(--text);font-family:var(--font-head)}
+.section-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.tickets-list{display:flex;flex-direction:column;gap:8px}
+.ticket-card{background:var(--surface);border-radius:12px;overflow:hidden;display:flex;align-items:stretch;border:1px solid #2a2825}
+.ticket-card:active{border-color:var(--accent)}
+.ticket-thumb{width:72px;flex-shrink:0;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden}
+.ticket-thumb img{width:100%;height:100%;object-fit:cover}
+.ticket-info{flex:1;padding:10px 12px;min-width:0;cursor:pointer}
+.ticket-name{font-size:11px;font-weight:500;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+.ticket-meta{font-size:12px;color:var(--text)}
+.ticket-amount{font-size:12px;color:var(--accent);margin-top:2px}
+.ticket-actions{display:flex;flex-direction:column;padding:6px;gap:4px}
+.ticket-btn{width:30px;height:30px;border-radius:8px;border:none;background:var(--surface2);color:var(--text);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.ticket-btn:active{background:var(--accent);color:var(--bg)}
+.ticket-btn.del:active{background:var(--danger);color:#fff}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:24px 24px 0 0;padding:20px 20px 36px;width:100%;max-width:480px;animation:slideUp 0.22s ease;max-height:92dvh;overflow-y:auto}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-handle{width:36px;height:4px;background:#3a3835;border-radius:2px;margin:0 auto 18px}
+.modal-title{font-family:var(--font-head);font-size:18px;font-weight:800;margin-bottom:18px}
+.input-group{margin-bottom:14px}
+.input-label{font-size:11px;color:var(--muted);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:0.5px}
+.input-field{width:100%;padding:11px 14px;background:var(--bg);border:1.5px solid #2a2825;border-radius:12px;color:var(--text);font-family:var(--font-mono);font-size:14px;outline:none}
+.input-field:focus{border-color:var(--accent)}
+select.input-field{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237a7570' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+select.input-field option{background:#1a1916;color:var(--text)}
+
+/* ICON PICKER */
+.icon-picker-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px}
+.icon-opt{width:100%;aspect-ratio:1;border-radius:12px;cursor:pointer;border:2px solid transparent;display:flex;align-items:center;justify-content:center}
+.icon-opt.selected{border-color:var(--accent);box-shadow:0 0 0 2px rgba(232,197,71,0.3);background:rgba(255,255,255,0.08)}
+
+/* WORKERS */
+.workers-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.worker-chip{padding:7px 12px;background:var(--bg);border:1.5px solid #2a2825;border-radius:100px;font-size:12px;cursor:pointer;color:var(--muted)}
+.worker-chip.selected{background:rgba(232,197,71,0.15);border-color:var(--accent);color:var(--accent)}
+.worker-add{display:flex;gap:8px;margin-top:8px}
+.worker-add input{flex:1}
+.worker-add button{padding:10px 14px;background:var(--surface2);border:none;border-radius:10px;color:var(--text);font-size:13px;cursor:pointer}
+
+/* FOTO PREVIEW */
+.foto-preview{width:100%;height:160px;border-radius:12px;overflow:hidden;margin-bottom:16px;background:var(--bg)}
+.foto-preview img{width:100%;height:100%;object-fit:cover}
+
+/* VIEWER */
+.viewer-overlay{display:none;position:fixed;inset:0;background:#000;z-index:200;flex-direction:column}
+.viewer-overlay.open{display:flex}
+.viewer-img{flex:1;object-fit:contain;width:100%}
+.viewer-bar{display:flex;align-items:center;gap:10px;padding:14px 16px 28px;background:rgba(0,0,0,0.9);flex-shrink:0}
+.viewer-info{flex:1;min-width:0}
+.viewer-name{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.viewer-meta{font-size:13px;color:var(--text);margin-top:2px}
+
+/* CONFIRM */
+.confirm-modal{display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:20px}
+.confirm-modal.open{display:flex}
+.confirm-box{background:var(--surface);border-radius:20px;padding:22px;width:100%;max-width:320px;text-align:center}
+.confirm-box h3{font-family:var(--font-head);font-size:16px;margin-bottom:8px}
+.confirm-box p{font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.5}
+.confirm-btns{display:flex;gap:10px}
+
+/* EXPORT */
+.export-list{display:flex;flex-direction:column;gap:8px}
+.export-opt{display:flex;align-items:center;gap:14px;padding:14px;background:var(--bg);border-radius:12px;cursor:pointer;border:1.5px solid transparent}
+.export-opt:active{border-color:var(--accent)}
+.export-opt-icon{font-size:22px;flex-shrink:0}
+.export-opt-title{font-size:13px;font-weight:500}
+.export-opt-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* TOAST */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);color:var(--text);padding:10px 20px;border-radius:100px;font-size:13px;opacity:0;transition:all 0.2s;z-index:500;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+input[type="file"]{display:none}
 </style>
 </head>
 <body>
 
+<!-- HOME -->
 <div class="screen active" id="screen-home">
   <div class="header">
     <div>
-      <div class="header-title">Mis<span>Tickets</span></div>
-      <div class="header-sub" id="home-subtitle">Cargando...</div>
+      <div class="header-title">AE<span>tickets</span></div>
+      <div class="header-sub" id="home-subtitle">0 meses · 0 tickets</div>
     </div>
-    <button class="icon-btn" onclick="openExport()">⬆</button>
+    <button class="icon-btn" onclick="openExportAll()">⬆</button>
   </div>
   <div class="scroll-area">
     <div class="empty-state" id="empty-home">
       <div class="big">🗂️</div>
-      <p>Aún no tienes proyectos.<br>Crea uno para empezar a guardar tickets.</p>
+      <p>Sin proyectos aún.<br>Crea uno para empezar.</p>
     </div>
-    <div class="projects-grid" id="projects-grid" style="display:none"></div>
+    <div id="months-container"></div>
   </div>
   <div class="bottom-bar">
     <button class="btn btn-secondary" onclick="openNewProject()">＋ Proyecto</button>
   </div>
 </div>
 
+<!-- PROYECTO -->
 <div class="screen" id="screen-project">
   <div class="proj-header">
     <button class="back-btn" onclick="goHome()">←</button>
+    <div id="proj-header-icon" style="flex-shrink:0"></div>
     <div class="proj-info">
-      <div class="proj-info-name" id="proj-title">Proyecto</div>
-      <div class="proj-info-count" id="proj-count">0 tickets</div>
+      <div class="proj-info-name" id="proj-title"></div>
+      <div class="proj-info-sub" id="proj-sub"></div>
     </div>
-    <button class="icon-btn" onclick="openProjExport()">⬆</button>
+    <button class="icon-btn" title="Editar nombre" onclick="openEditProject()" style="font-size:15px;">✏️</button>
+    <button class="icon-btn" onclick="openExportProject()">⬆</button>
   </div>
-  <div class="scroll-area" id="tickets-container">
+  <div class="scroll-area">
     <div class="stats-bar" id="proj-stats" style="display:none">
       <div class="stat-chip"><strong id="stat-count">0</strong>tickets</div>
-      <div class="stat-chip"><strong id="stat-size">0</strong>MB total</div>
+      <div class="stat-chip"><strong id="stat-amount">—</strong>total €</div>
     </div>
     <div class="section-label">TICKETS</div>
     <div class="empty-state" id="empty-project">
       <div class="big">📷</div>
-      <p>Sin tickets aún.<br>Toca el botón de cámara para añadir el primero.</p>
+      <p>Sin tickets aún.<br>Toca 📷 para añadir el primero.</p>
     </div>
     <div class="tickets-list" id="tickets-list"></div>
   </div>
-  <div class="bottom-bar" style="align-items:center;justify-content:center;gap:16px;">
-    <button class="btn btn-secondary" style="flex:0 0 auto;padding:14px 20px;" onclick="confirmDeleteProject()">🗑 Borrar</button>
+  <div class="bottom-bar" style="justify-content:center;gap:14px;">
+    <button class="btn btn-danger" style="flex:0 0 auto;padding:12px 16px;font-size:12px;" onclick="confirmDeleteProject()">🗑 Borrar</button>
     <button class="cam-btn" onclick="openCamera()">📷</button>
-    <button class="btn btn-secondary" style="flex:0 0 auto;padding:14px 20px;" onclick="openGallery()">🖼 Galería</button>
+    <button class="btn btn-secondary" style="flex:0 0 auto;padding:12px 16px;font-size:12px;" onclick="openGallery()">🖼 Galería</button>
   </div>
 </div>
 
-<input type="file" id="camera-input" accept="image/*" capture="environment" onchange="handlePhoto(event)">
-<input type="file" id="gallery-input" accept="image/*" multiple onchange="handleGallery(event)">
+<input type="file" id="camera-input" accept="image/*" capture="environment" onchange="handlePhotoCapture(event)">
+<input type="file" id="gallery-input" accept="image/*" multiple onchange="handleGalleryCapture(event)">
 
+<!-- MODAL: NUEVO PROYECTO -->
 <div class="modal-overlay" id="modal-new-project" onclick="closeModal('modal-new-project')">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-handle"></div>
     <div class="modal-title">Nuevo proyecto</div>
     <div class="input-group">
       <label class="input-label">Nombre</label>
-      <input class="input-field" id="proj-name-input" placeholder="Ej: Viaje Madrid mayo" maxlength="40" onkeydown="if(event.key==='Enter')createProject()">
+      <input class="input-field" id="proj-name-input" placeholder="Ej: Viaje Madrid" maxlength="40" onkeydown="if(event.key==='Enter')createProject()">
     </div>
     <div class="input-group">
       <label class="input-label">Icono</label>
-      <div class="emoji-grid" id="emoji-grid"></div>
+      <div class="icon-picker-grid" id="icon-picker-grid"></div>
     </div>
-    <div style="display:flex;gap:10px;margin-top:8px;">
+    <div style="display:flex;gap:10px;margin-top:12px;">
       <button class="btn btn-secondary" onclick="closeModal('modal-new-project')">Cancelar</button>
       <button class="btn btn-primary" onclick="createProject()">Crear ✓</button>
     </div>
   </div>
 </div>
 
+<!-- MODAL: EDITAR PROYECTO -->
+<div class="modal-overlay" id="modal-edit-project" onclick="closeModal('modal-edit-project')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Editar proyecto</div>
+    <div class="input-group">
+      <label class="input-label">Nombre</label>
+      <input class="input-field" id="edit-proj-name-input" maxlength="40" onkeydown="if(event.key==='Enter')saveEditProject()">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Icono</label>
+      <div class="icon-picker-grid" id="edit-icon-picker-grid"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:12px;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-edit-project')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditProject()">Guardar ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: FORMULARIO TICKET -->
+<div class="modal-overlay" id="modal-ticket-form">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Nuevo ticket</div>
+    <div class="foto-preview"><img id="form-foto-img" src="" alt=""></div>
+    <div class="input-group">
+      <label class="input-label">Concepto</label>
+      <select class="input-field" id="form-concepto" onchange="onConceptoChange()">
+        <option value="">— Sin especificar —</option>
+        <option value="Hotel">🏨 Hotel</option>
+        <option value="Gasolina">⛽ Gasolina</option>
+        <option value="Restaurante">🍽️ Restaurante</option>
+        <option value="Copas">🍷 Copas</option>
+        <option value="Taxi">🚕 Taxi</option>
+        <option value="Vuelo">✈️ Vuelo</option>
+        <option value="Parking">🅿️ Parking</option>
+        <option value="Peaje">🛣️ Peaje</option>
+        <option value="Otros">📦 Otros</option>
+      </select>
+    </div>
+    <div class="input-group" id="workers-group" style="display:none">
+      <label class="input-label">Trabajadores presentes</label>
+      <div class="workers-grid" id="workers-chips"></div>
+      <div class="worker-add">
+        <input class="input-field" id="worker-custom-input" placeholder="Otro nombre..." style="font-size:13px;">
+        <button onclick="addCustomWorker()">＋</button>
+      </div>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Fecha del recibo</label>
+      <input class="input-field" type="date" id="form-fecha">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Importe (€)</label>
+      <input class="input-field" type="number" id="form-importe" placeholder="0.00" step="0.01" min="0">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="btn btn-secondary" onclick="skipTicketForm()">Omitir</button>
+      <button class="btn btn-primary" onclick="saveTicketForm()">Guardar ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR TICKET -->
+<div class="modal-overlay" id="modal-edit-ticket">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Editar ticket</div>
+    <div class="input-group">
+      <label class="input-label">Concepto</label>
+      <select class="input-field" id="edit-concepto" onchange="onEditConceptoChange()">
+        <option value="">— Sin especificar —</option>
+        <option value="Hotel">🏨 Hotel</option>
+        <option value="Gasolina">⛽ Gasolina</option>
+        <option value="Restaurante">🍽️ Restaurante</option>
+        <option value="Copas">🍷 Copas</option>
+        <option value="Taxi">🚕 Taxi</option>
+        <option value="Vuelo">✈️ Vuelo</option>
+        <option value="Parking">🅿️ Parking</option>
+        <option value="Peaje">🛣️ Peaje</option>
+        <option value="Otros">📦 Otros</option>
+      </select>
+    </div>
+    <div class="input-group" id="edit-workers-group" style="display:none">
+      <label class="input-label">Trabajadores presentes</label>
+      <div class="workers-grid" id="edit-workers-chips"></div>
+      <div class="worker-add">
+        <input class="input-field" id="edit-worker-custom-input" placeholder="Otro nombre..." style="font-size:13px;">
+        <button onclick="addEditCustomWorker()">＋</button>
+      </div>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Fecha del recibo</label>
+      <input class="input-field" type="date" id="edit-fecha">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Importe (€)</label>
+      <input class="input-field" type="number" id="edit-importe" placeholder="0.00" step="0.01" min="0">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-edit-ticket')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditTicket()">Guardar ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EXPORTAR -->
 <div class="modal-overlay" id="modal-export" onclick="closeModal('modal-export')">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-handle"></div>
-    <div class="modal-title" id="export-title">Exportar</div>
+    <div class="modal-title" id="export-modal-title">Exportar</div>
     <div class="export-list">
-      <div class="export-opt" onclick="shareTickets()">
-        <div class="export-opt-icon">↗️</div>
-        <div class="export-opt-info">
-          <div class="export-opt-title">Compartir fotos</div>
-          <div class="export-opt-sub">Enviar por WhatsApp, Drive, email…</div>
+      <div class="export-opt" onclick="exportZip()">
+        <div class="export-opt-icon">📦</div>
+        <div>
+          <div class="export-opt-title">Descargar ZIP</div>
+          <div class="export-opt-sub">Carpetas por proyecto con fotos renombradas</div>
         </div>
       </div>
-      <div class="export-opt" onclick="exportIndividual()">
-        <div class="export-opt-icon">💾</div>
-        <div class="export-opt-info">
-          <div class="export-opt-title">Guardar en el móvil</div>
-          <div class="export-opt-sub">Descarga cada imagen a tu galería</div>
+      <div class="export-opt" onclick="shareTickets()">
+        <div class="export-opt-icon">↗️</div>
+        <div>
+          <div class="export-opt-title">Compartir fotos</div>
+          <div class="export-opt-sub">WhatsApp, Teams, Drive…</div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- VIEWER -->
 <div class="viewer-overlay" id="viewer">
   <img class="viewer-img" id="viewer-img" src="" alt="">
   <div class="viewer-bar">
-    <div class="viewer-name" id="viewer-name"></div>
-    <button class="icon-btn" onclick="downloadViewer()">⬇</button>
-    <button class="icon-btn" style="margin-left:8px;" onclick="closeViewer()">✕</button>
+    <button class="icon-btn" onclick="closeViewer()" style="margin-right:4px;">←</button>
+    <div class="viewer-info">
+      <div class="viewer-name" id="viewer-name"></div>
+      <div class="viewer-meta" id="viewer-meta"></div>
+    </div>
+    <button class="icon-btn" onclick="editViewerTicket()" style="font-size:15px;">✏️</button>
+    <button class="icon-btn" onclick="downloadViewer()" style="margin-left:4px;">⬇</button>
   </div>
 </div>
 
+<!-- CONFIRM -->
 <div class="confirm-modal" id="confirm-modal">
   <div class="confirm-box">
     <h3 id="confirm-title">¿Eliminar?</h3>
-    <p id="confirm-msg">Esta acción no se puede deshacer.</p>
+    <p id="confirm-msg"></p>
     <div class="confirm-btns">
       <button class="btn btn-secondary" onclick="closeConfirm()">Cancelar</button>
       <button class="btn" style="background:var(--danger);color:#fff;" id="confirm-ok-btn">Eliminar</button>
@@ -223,142 +391,425 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
-let projects = [], currentProjectId = null, exportMode = 'all', viewerData = null;
-const EMOJIS = ['🧾','📄','🗂️','💼','🏢','✈️','🚗','🍽️','🛒','🏨','⚙️','📦','💡','🔧','📋','🎯','💰','🧳','🖨️','📌'];
-const DB_NAME = 'MisTickets', STORE = 'images';
-let db;
+// ============ ICONS ============
+const ICON_SHAPES=[
+  {id:'c1',color:'#e85d4a',svg:'<circle cx="20" cy="20" r="14"/>'},
+  {id:'c2',color:'#4a9ee8',svg:'<circle cx="20" cy="20" r="14"/>'},
+  {id:'c3',color:'#4ace7f',svg:'<circle cx="20" cy="20" r="14"/>'},
+  {id:'c4',color:'#e8c547',svg:'<circle cx="20" cy="20" r="14"/>'},
+  {id:'c5',color:'#c44ae8',svg:'<circle cx="20" cy="20" r="14"/>'},
+  {id:'s1',color:'#e85d4a',svg:'<rect x="6" y="6" width="28" height="28" rx="4"/>'},
+  {id:'s2',color:'#4a9ee8',svg:'<rect x="6" y="6" width="28" height="28" rx="4"/>'},
+  {id:'s3',color:'#4ace7f',svg:'<rect x="6" y="6" width="28" height="28" rx="4"/>'},
+  {id:'s4',color:'#e8c547',svg:'<rect x="6" y="6" width="28" height="28" rx="4"/>'},
+  {id:'s5',color:'#c44ae8',svg:'<rect x="6" y="6" width="28" height="28" rx="4"/>'},
+  {id:'t1',color:'#e85d4a',svg:'<polygon points="20,5 35,33 5,33"/>'},
+  {id:'t2',color:'#4a9ee8',svg:'<polygon points="20,5 35,33 5,33"/>'},
+  {id:'t3',color:'#4ace7f',svg:'<polygon points="20,5 35,33 5,33"/>'},
+  {id:'t4',color:'#e8c547',svg:'<polygon points="20,5 35,33 5,33"/>'},
+  {id:'t5',color:'#c44ae8',svg:'<polygon points="20,5 35,33 5,33"/>'},
+  {id:'d1',color:'#e85d4a',svg:'<polygon points="20,4 36,20 20,36 4,20"/>'},
+  {id:'d2',color:'#4a9ee8',svg:'<polygon points="20,4 36,20 20,36 4,20"/>'},
+  {id:'d3',color:'#4ace7f',svg:'<polygon points="20,4 36,20 20,36 4,20"/>'},
+  {id:'d4',color:'#e8c547',svg:'<polygon points="20,4 36,20 20,36 4,20"/>'},
+  {id:'d5',color:'#ff6b9d',svg:'<polygon points="20,4 36,20 20,36 4,20"/>'},
+];
+function buildIconSVG(icon,size=40){return `<svg width="${size}" height="${size}" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><g fill="${icon.color}">${icon.svg}</g></svg>`;}
+function getIcon(id){return ICON_SHAPES.find(i=>i.id===id)||ICON_SHAPES[0];}
 
-function openDB() {
-  return new Promise((res, rej) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = e => e.target.result.createObjectStore(STORE);
-    req.onsuccess = e => { db = e.target.result; res(db); };
-    req.onerror = () => rej('DB error');
-  });
+// ============ STATE ============
+let projects=[], currentProjectId=null, exportMode='all', currentExportMonth=null;
+let pendingPhotoData=null, viewerData=null;
+let selectedWorkers=[], extraWorkers=[], editSelectedWorkers=[], editExtraWorkers=[];
+let selectedIconId=ICON_SHAPES[0].id, editSelectedIconId=ICON_SHAPES[0].id;
+let editingTicketId=null;
+const WORKERS=['Alfredo','Haridian','Brian','Acoidan','Oriol','Airam','Carlos','Juan David'];
+
+// ============ INDEXEDDB ============
+const DB_NAME='AEticketsV2',STORE='images';
+let db;
+function openDB(){return new Promise((res,rej)=>{const req=indexedDB.open(DB_NAME,1);req.onupgradeneeded=e=>e.target.result.createObjectStore(STORE);req.onsuccess=e=>{db=e.target.result;res();};req.onerror=rej;});}
+function dbSet(id,val){return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(val,id);tx.oncomplete=res;tx.onerror=rej;});}
+function dbGet(id){return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readonly');const r=tx.objectStore(STORE).get(id);r.onsuccess=()=>res(r.result);r.onerror=rej;});}
+function dbDel(id){return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(id);tx.oncomplete=res;tx.onerror=rej;});}
+
+// ============ STORAGE ============
+function save(){
+  const meta=projects.map(p=>({id:p.id,name:p.name,iconId:p.iconId,monthKey:p.monthKey,created:p.created,
+    tickets:p.tickets.map(t=>({id:t.id,filename:t.filename,concepto:t.concepto,workers:t.workers,fecha:t.fecha,importe:t.importe,created:t.created}))}));
+  try{localStorage.setItem('aet_v2',JSON.stringify(meta));}catch(e){}
 }
-function saveImage(id, dataUrl) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).put(dataUrl, id);
-    tx.oncomplete = res; tx.onerror = rej;
-  });
-}
-function getImage(id) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(STORE, 'readonly');
-    const req = tx.objectStore(STORE).get(id);
-    req.onsuccess = () => res(req.result); req.onerror = rej;
-  });
-}
-function deleteImage(id) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).delete(id);
-    tx.oncomplete = res; tx.onerror = rej;
-  });
-}
-function save() {
-  const meta = projects.map(p => ({ ...p, tickets: p.tickets.map(t => ({ id: t.id, name: t.name, date: t.date, size: t.size })) }));
-  try { localStorage.setItem('mst_meta', JSON.stringify(meta)); } catch(e) {}
-}
-async function init() {
+function loadMeta(){try{const r=localStorage.getItem('aet_v2');return r?JSON.parse(r):[];}catch(e){return[];}}
+
+// ============ INIT ============
+async function init(){
   await openDB();
-  try { const r = localStorage.getItem('mst_meta'); projects = r ? JSON.parse(r).map(p => ({ ...p, tickets: p.tickets.map(t => ({ ...t, dataUrl: null })) })) : []; } catch(e) { projects = []; }
+  projects=loadMeta().map(p=>({...p,tickets:p.tickets.map(t=>({...t,dataUrl:null}))}));
   renderHome();
 }
-function renderHome() {
-  const grid = document.getElementById('projects-grid');
-  const empty = document.getElementById('empty-home');
-  const total = projects.reduce((s, p) => s + p.tickets.length, 0);
-  document.getElementById('home-subtitle').textContent = `${projects.length} proyecto${projects.length!==1?'s':''} · ${total} ticket${total!==1?'s':''}`;
-  if (!projects.length) { empty.style.display='flex'; grid.style.display='none'; return; }
-  empty.style.display='none'; grid.style.display='grid';
-  grid.innerHTML='';
-  projects.forEach(p => {
-    const card = document.createElement('div');
-    card.className='project-card';
-    const last = p.tickets.length ? new Date(p.tickets[p.tickets.length-1].date).toLocaleDateString('es-ES',{day:'2-digit',month:'short'}) : '—';
-    card.innerHTML=`<div class="project-emoji">${p.emoji}</div><div class="project-name">${p.name}</div><div class="project-count">${p.tickets.length} ticket${p.tickets.length!==1?'s':''}</div><div class="project-date">Último: ${last}</div>`;
-    card.onclick=()=>openProject(p.id); grid.appendChild(card);
-  });
-  const nc=document.createElement('div'); nc.className='new-project-card';
-  nc.innerHTML='<div class="plus">＋</div><span>Nuevo proyecto</span>'; nc.onclick=openNewProject; grid.appendChild(nc);
+
+// ============ UTILS ============
+function currentMonthKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+function monthLabel(key){const [y,m]=key.split('-');return new Date(+y,+m-1,1).toLocaleDateString('es-ES',{month:'long',year:'numeric'}).replace(/^\w/,c=>c.toUpperCase());}
+
+function buildFilename(t,projectName){
+  const d=new Date(t.created);
+  const date=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const time=`${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}${String(d.getSeconds()).padStart(2,'0')}`;
+  const proj=projectName.replace(/\s+/g,'-').replace(/[/\\:*?"<>|]/g,'');
+  let name=`${date}_${time}_${proj}`;
+  if(t.concepto)name+=`_${t.concepto}`;
+  if(t.workers&&t.workers.length)name+=`_${t.workers.join('-')}`;
+  if(t.importe)name+=`_${parseFloat(t.importe).toFixed(2)}€`;
+  return name+'.jpg';
 }
-function openProject(id) { currentProjectId=id; const p=getProject(); document.getElementById('proj-title').textContent=`${p.emoji} ${p.name}`; showScreen('screen-project'); renderTickets(); }
-function getProject() { return projects.find(p=>p.id===currentProjectId); }
-async function renderTickets() {
-  const p=getProject(); const list=document.getElementById('tickets-list'); const empty=document.getElementById('empty-project'); const stats=document.getElementById('proj-stats');
-  document.getElementById('proj-count').textContent=`${p.tickets.length} ticket${p.tickets.length!==1?'s':''}`;
-  if (!p.tickets.length) { empty.style.display='flex'; list.style.display='none'; stats.style.display='none'; return; }
-  empty.style.display='none'; list.style.display='flex'; stats.style.display='flex';
+
+function getProject(id){return projects.find(p=>p.id===(id||currentProjectId));}
+function toDataUrl(file){return new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(file);});}
+
+// Autoguardado en galería
+function autoSaveToGallery(dataUrl, filename){
+  try{
+    const a=document.createElement('a');
+    a.href=dataUrl;
+    a.download=filename;
+    a.click();
+  }catch(e){}
+}
+
+// ============ HOME ============
+function renderHome(){
+  const container=document.getElementById('months-container');
+  const empty=document.getElementById('empty-home');
+  const total=projects.reduce((s,p)=>s+p.tickets.length,0);
+  const months=[...new Set(projects.map(p=>p.monthKey))].sort((a,b)=>b.localeCompare(a));
+  document.getElementById('home-subtitle').textContent=`${months.length} mes${months.length!==1?'es':''} · ${total} ticket${total!==1?'s':''}`;
+
+  if(!projects.length){empty.style.display='flex';container.innerHTML='';return;}
+  empty.style.display='none';container.innerHTML='';
+
+  const allMonths=months.includes(currentMonthKey())?months:[currentMonthKey(),...months];
+
+  allMonths.forEach(mk=>{
+    const monthProjects=projects.filter(p=>p.monthKey===mk);
+    const section=document.createElement('div');
+    section.className='month-section';
+
+    // Header del mes con botón ZIP destacado
+    const mh=document.createElement('div');
+    mh.className='month-header';
+    mh.innerHTML=`<div class="month-label">${monthLabel(mk)}</div>`;
+    const zipBtn=document.createElement('button');
+    zipBtn.className='month-zip-btn';
+    zipBtn.innerHTML='📦 ZIP mes';
+    zipBtn.onclick=()=>openExportMonth(mk);
+    mh.appendChild(zipBtn);
+    section.appendChild(mh);
+
+    const div=document.createElement('div');
+    div.className='month-divider';
+    section.appendChild(div);
+
+    const grid=document.createElement('div');
+    grid.className='projects-grid';
+
+    monthProjects.forEach(p=>{
+      const totalAmount=p.tickets.reduce((s,t)=>s+(parseFloat(t.importe)||0),0);
+      const icon=getIcon(p.iconId);
+      const card=document.createElement('div');
+      card.className='project-card';
+      card.style.borderLeft=`3px solid ${icon.color}`;
+      card.innerHTML=`<div class="project-icon">${buildIconSVG(icon,40)}</div><div class="project-name">${p.name}</div><div class="project-count">${p.tickets.length} ticket${p.tickets.length!==1?'s':''}</div>${totalAmount>0?`<div class="project-amount">${totalAmount.toFixed(2)} €</div>`:''}`;
+      card.onclick=()=>openProject(p.id);
+      grid.appendChild(card);
+    });
+
+    if(mk===currentMonthKey()){
+      const nc=document.createElement('div');nc.className='new-project-card';
+      nc.innerHTML='<div class="plus">＋</div><span>Nuevo proyecto</span>';nc.onclick=openNewProject;grid.appendChild(nc);
+    }
+    section.appendChild(grid);
+    container.appendChild(section);
+  });
+}
+
+// ============ PROYECTO ============
+function openProject(id){
+  currentProjectId=id;const p=getProject();
+  const icon=getIcon(p.iconId);
+  document.getElementById('proj-title').textContent=p.name;
+  document.getElementById('proj-sub').textContent=monthLabel(p.monthKey);
+  document.getElementById('proj-header-icon').innerHTML=buildIconSVG(icon,28);
+  showScreen('screen-project');renderTickets();
+}
+
+async function renderTickets(){
+  const p=getProject();
+  const list=document.getElementById('tickets-list');
+  const empty=document.getElementById('empty-project');
+  const stats=document.getElementById('proj-stats');
+  if(!p.tickets.length){empty.style.display='flex';list.style.display='none';stats.style.display='none';return;}
+  empty.style.display='none';list.style.display='flex';stats.style.display='flex';
+  const totalAmount=p.tickets.reduce((s,t)=>s+(parseFloat(t.importe)||0),0);
   document.getElementById('stat-count').textContent=p.tickets.length;
-  document.getElementById('stat-size').textContent=(p.tickets.reduce((s,t)=>s+(t.size||0),0)/1048576).toFixed(1);
+  document.getElementById('stat-amount').textContent=totalAmount>0?totalAmount.toFixed(2):'—';
   list.innerHTML='';
-  for (const t of p.tickets) {
-    const card=document.createElement('div'); card.className='ticket-card';
-    card.innerHTML=`<div class="ticket-thumb" id="thumb-${t.id}"><span>🧾</span></div><div class="ticket-info" onclick="viewTicket('${t.id}')"><div class="ticket-name">${t.name}</div><div class="ticket-date">${new Date(t.date).toLocaleString('es-ES',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div><div class="ticket-size">${t.size?(t.size/1024).toFixed(0)+' KB':''}</div></div><div class="ticket-actions"><button class="ticket-btn" onclick="downloadTicket('${t.id}')">⬇</button><button class="ticket-btn del" onclick="confirmDeleteTicket('${t.id}')">🗑</button></div>`;
+  for(const t of p.tickets){
+    const card=document.createElement('div');card.className='ticket-card';
+    const meta=[t.concepto,t.workers&&t.workers.length?t.workers.join(', '):''].filter(Boolean).join(' · ');
+    card.innerHTML=`<div class="ticket-thumb" id="thumb-${t.id}"><span>🧾</span></div>
+      <div class="ticket-info" onclick="viewTicket('${t.id}')">
+        <div class="ticket-name">${t.filename}</div>
+        <div class="ticket-meta">${new Date(t.created).toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}${meta?' · '+meta:''}</div>
+        ${t.importe?`<div class="ticket-amount">${parseFloat(t.importe).toFixed(2)} €</div>`:''}
+      </div>
+      <div class="ticket-actions">
+        <button class="ticket-btn" onclick="openEditTicket('${t.id}')">✏️</button>
+        <button class="ticket-btn del" onclick="confirmDeleteTicket('${t.id}')">🗑</button>
+      </div>`;
     list.appendChild(card);
-    getImage(t.id).then(url=>{ if(!url)return; const th=document.getElementById(`thumb-${t.id}`); if(th){th.innerHTML=`<img src="${url}" alt="">`;}  t.dataUrl=url; });
+    dbGet(t.id).then(url=>{if(!url)return;t.dataUrl=url;const th=document.getElementById(`thumb-${t.id}`);if(th)th.innerHTML=`<img src="${url}" alt="">`;});
   }
 }
-function openCamera() { document.getElementById('camera-input').click(); }
-function openGallery() { document.getElementById('gallery-input').click(); }
-async function handlePhoto(e) { const f=e.target.files[0]; if(!f)return; await processFile(f); e.target.value=''; }
-async function handleGallery(e) { for(const f of Array.from(e.target.files)) await processFile(f); e.target.value=''; }
-async function processFile(file) {
-  const p=getProject(); const id='tk_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
-  const name=file.name.replace(/\.[^.]+$/,'').replace(/[_-]/g,' ').trim()||`ticket_${p.tickets.length+1}`;
-  const dataUrl=await new Promise((r)=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(file); });
-  await saveImage(id,dataUrl);
-  p.tickets.push({id,name,date:new Date().toISOString(),size:file.size,dataUrl});
-  save(); renderTickets(); renderHome(); showToast('✓ Ticket guardado');
+
+// ============ CAMERA ============
+function openCamera(){document.getElementById('camera-input').click();}
+function openGallery(){document.getElementById('gallery-input').click();}
+async function handlePhotoCapture(e){const file=e.target.files[0];if(!file)return;pendingPhotoData={dataUrl:await toDataUrl(file),size:file.size};e.target.value='';openTicketForm();}
+async function handleGalleryCapture(e){
+  const files=Array.from(e.target.files);if(!files.length)return;
+  if(files.length>1){for(const f of files)await saveTicket({dataUrl:await toDataUrl(f),size:f.size},{});e.target.value='';showToast(`✓ ${files.length} tickets guardados`);return;}
+  pendingPhotoData={dataUrl:await toDataUrl(files[0]),size:files[0].size};e.target.value='';openTicketForm();
 }
-async function viewTicket(id) {
-  const p=getProject(); const t=p.tickets.find(x=>x.id===id); if(!t)return;
-  const url=t.dataUrl||await getImage(id);
-  viewerData={id,name:t.name,url};
-  document.getElementById('viewer-img').src=url; document.getElementById('viewer-name').textContent=t.name;
+
+// ============ FORMULARIO NUEVO ============
+function openTicketForm(){
+  document.getElementById('form-concepto').value='';
+  document.getElementById('form-importe').value='';
+  document.getElementById('form-fecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('form-foto-img').src=pendingPhotoData.dataUrl;
+  selectedWorkers=[];extraWorkers=[];
+  document.getElementById('workers-group').style.display='none';
+  document.getElementById('worker-custom-input').value='';
+  openModal('modal-ticket-form');
+}
+function onConceptoChange(){const val=document.getElementById('form-concepto').value;const show=val==='Restaurante'||val==='Copas';document.getElementById('workers-group').style.display=show?'block':'none';if(show)renderWorkerChips();}
+function renderWorkerChips(){
+  const all=[...WORKERS,...extraWorkers];const grid=document.getElementById('workers-chips');grid.innerHTML='';
+  all.forEach(w=>{const chip=document.createElement('div');chip.className='worker-chip'+(selectedWorkers.includes(w)?' selected':'');chip.textContent=w;chip.onclick=()=>{if(selectedWorkers.includes(w))selectedWorkers=selectedWorkers.filter(x=>x!==w);else selectedWorkers.push(w);renderWorkerChips();};grid.appendChild(chip);});
+}
+function addCustomWorker(){const val=document.getElementById('worker-custom-input').value.trim();if(!val)return;if(![...WORKERS,...extraWorkers].includes(val))extraWorkers.push(val);if(!selectedWorkers.includes(val))selectedWorkers.push(val);document.getElementById('worker-custom-input').value='';renderWorkerChips();}
+async function saveTicketForm(){
+  const concepto=document.getElementById('form-concepto').value;
+  const importe=document.getElementById('form-importe').value;
+  const fecha=document.getElementById('form-fecha').value;
+  const workers=selectedWorkers.length?[...selectedWorkers]:[];
+  closeModal('modal-ticket-form');
+  await saveTicket(pendingPhotoData,{concepto,importe,workers,fecha});
+  pendingPhotoData=null;
+}
+async function skipTicketForm(){closeModal('modal-ticket-form');await saveTicket(pendingPhotoData,{});pendingPhotoData=null;}
+
+async function saveTicket(photoData,meta){
+  const p=getProject();
+  const id='tk_'+Date.now()+'_'+Math.random().toString(36).slice(2,5);
+  const now=new Date();
+  const ticket={id,concepto:meta.concepto||'',workers:meta.workers||[],importe:meta.importe||'',fecha:meta.fecha||now.toISOString().split('T')[0],created:now.toISOString(),dataUrl:null,size:photoData.size||0};
+  ticket.filename=buildFilename(ticket,p.name);
+  await dbSet(id,photoData.dataUrl);
+  ticket.dataUrl=photoData.dataUrl;
+  p.tickets.push(ticket);
+  save();renderTickets();renderHome();
+  // Autoguardado en galería
+  autoSaveToGallery(photoData.dataUrl, ticket.filename);
+  showToast('✓ Ticket guardado y descargado');
+}
+
+// ============ EDITAR TICKET ============
+function openEditTicket(id){
+  const p=getProject();const t=p.tickets.find(x=>x.id===id);if(!t)return;
+  editingTicketId=id;
+  document.getElementById('edit-concepto').value=t.concepto||'';
+  document.getElementById('edit-importe').value=t.importe||'';
+  document.getElementById('edit-fecha').value=t.fecha||new Date().toISOString().split('T')[0];
+  editSelectedWorkers=t.workers?[...t.workers]:[];editExtraWorkers=[];
+  const show=t.concepto==='Restaurante'||t.concepto==='Copas';
+  document.getElementById('edit-workers-group').style.display=show?'block':'none';
+  if(show)renderEditWorkerChips();
+  openModal('modal-edit-ticket');
+}
+function onEditConceptoChange(){const val=document.getElementById('edit-concepto').value;const show=val==='Restaurante'||val==='Copas';document.getElementById('edit-workers-group').style.display=show?'block':'none';if(show)renderEditWorkerChips();}
+function renderEditWorkerChips(){
+  const all=[...WORKERS,...editExtraWorkers];const grid=document.getElementById('edit-workers-chips');grid.innerHTML='';
+  all.forEach(w=>{const chip=document.createElement('div');chip.className='worker-chip'+(editSelectedWorkers.includes(w)?' selected':'');chip.textContent=w;chip.onclick=()=>{if(editSelectedWorkers.includes(w))editSelectedWorkers=editSelectedWorkers.filter(x=>x!==w);else editSelectedWorkers.push(w);renderEditWorkerChips();};grid.appendChild(chip);});
+}
+function addEditCustomWorker(){const val=document.getElementById('edit-worker-custom-input').value.trim();if(!val)return;if(![...WORKERS,...editExtraWorkers].includes(val))editExtraWorkers.push(val);if(!editSelectedWorkers.includes(val))editSelectedWorkers.push(val);document.getElementById('edit-worker-custom-input').value='';renderEditWorkerChips();}
+function saveEditTicket(){
+  const p=getProject();const t=p.tickets.find(x=>x.id===editingTicketId);if(!t)return;
+  t.concepto=document.getElementById('edit-concepto').value;
+  t.importe=document.getElementById('edit-importe').value;
+  t.fecha=document.getElementById('edit-fecha').value;
+  t.workers=editSelectedWorkers.length?[...editSelectedWorkers]:[];
+  t.filename=buildFilename(t,p.name);
+  save();closeModal('modal-edit-ticket');renderTickets();showToast('✓ Ticket actualizado');
+  editingTicketId=null;
+}
+function editViewerTicket(){if(!viewerData)return;closeViewer();openEditTicket(viewerData.id);}
+
+// ============ VIEWER ============
+async function viewTicket(id){
+  const p=getProject();const t=p.tickets.find(x=>x.id===id);if(!t)return;
+  const url=t.dataUrl||await dbGet(id);
+  viewerData={id,filename:t.filename,url,meta:[t.concepto,t.importe?t.importe+'€':''].filter(Boolean).join(' · ')};
+  document.getElementById('viewer-img').src=url;
+  document.getElementById('viewer-name').textContent=t.filename;
+  document.getElementById('viewer-meta').textContent=viewerData.meta;
   document.getElementById('viewer').classList.add('open');
 }
-function closeViewer() { document.getElementById('viewer').classList.remove('open'); viewerData=null; }
-function downloadViewer() { if(!viewerData)return; dl(viewerData.url,viewerData.name+'.jpg'); }
-async function downloadTicket(id) { const p=getProject(); const t=p.tickets.find(x=>x.id===id); if(!t)return; const url=t.dataUrl||await getImage(id); dl(url,t.name+'.jpg'); showToast('⬇ Descargando...'); }
-function dl(url,name) { const a=document.createElement('a'); a.href=url; a.download=name; a.click(); }
-function confirmDeleteTicket(id) { const p=getProject(); const t=p.tickets.find(x=>x.id===id); showConfirm('¿Eliminar ticket?',`Se borrará "${t.name}" permanentemente.`,async()=>{ await deleteImage(id); p.tickets=p.tickets.filter(x=>x.id!==id); save(); renderTickets(); renderHome(); showToast('Ticket eliminado'); }); }
-function confirmDeleteProject() { const p=getProject(); showConfirm('¿Eliminar proyecto?',`Se borrarán "${p.name}" y sus ${p.tickets.length} tickets.`,async()=>{ for(const t of p.tickets)await deleteImage(t.id); projects=projects.filter(x=>x.id!==currentProjectId); save(); goHome(); showToast('Proyecto eliminado'); }); }
-let selectedEmoji=EMOJIS[0];
-function openNewProject() {
-  selectedEmoji=EMOJIS[0]; document.getElementById('proj-name-input').value='';
-  const grid=document.getElementById('emoji-grid'); grid.innerHTML='';
-  EMOJIS.forEach((e,i)=>{ const d=document.createElement('div'); d.className='emoji-opt'+(i===0?' selected':''); d.textContent=e; d.onclick=()=>{ selectedEmoji=e; grid.querySelectorAll('.emoji-opt').forEach(x=>x.classList.remove('selected')); d.classList.add('selected'); }; grid.appendChild(d); });
-  openModal('modal-new-project'); setTimeout(()=>document.getElementById('proj-name-input').focus(),300);
+function closeViewer(){document.getElementById('viewer').classList.remove('open');viewerData=null;}
+function downloadViewer(){if(!viewerData)return;dl(viewerData.url,viewerData.filename);}
+function dl(url,name){const a=document.createElement('a');a.href=url;a.download=name;a.click();}
+
+// ============ DELETE ============
+function confirmDeleteTicket(id){
+  const p=getProject();const t=p.tickets.find(x=>x.id===id);
+  showConfirm('¿Eliminar ticket?',`Se borrará "${t.filename}".`,async()=>{await dbDel(id);p.tickets=p.tickets.filter(x=>x.id!==id);save();renderTickets();renderHome();showToast('Ticket eliminado');});
 }
-function createProject() { const name=document.getElementById('proj-name-input').value.trim(); if(!name){showToast('Escribe un nombre');return;} projects.unshift({id:'pr_'+Date.now(),name,emoji:selectedEmoji,created:new Date().toISOString(),tickets:[]}); save(); renderHome(); closeModal('modal-new-project'); showToast('✓ Proyecto creado'); }
-function openExport() { exportMode='all'; document.getElementById('export-title').textContent='Exportar todo'; openModal('modal-export'); }
-function openProjExport() { exportMode='project'; document.getElementById('export-title').textContent='Exportar proyecto'; openModal('modal-export'); }
-async function getExportTickets() { return exportMode==='project'?getProject().tickets:projects.flatMap(p=>p.tickets); }
-async function shareTickets() {
-  closeModal('modal-export'); const tickets=await getExportTickets(); if(!tickets.length){showToast('Sin tickets');return;}
-  if(!navigator.share){showToast('Usa "Guardar en el móvil"');return;}
+function confirmDeleteProject(){
+  const p=getProject();
+  showConfirm('¿Eliminar proyecto?','Se borrarán "'+p.name+'" y sus '+p.tickets.length+' tickets. Esta acción no se puede deshacer.',async()=>{
+    for(const t of p.tickets)await dbDel(t.id);
+    projects=projects.filter(x=>x.id!==currentProjectId);
+    currentProjectId=null;save();closeConfirm();
+    showScreen('screen-home');renderHome();showToast('Proyecto eliminado');
+  });
+}
+
+// ============ NUEVO PROYECTO ============
+function openNewProject(){
+  selectedIconId=ICON_SHAPES[0].id;document.getElementById('proj-name-input').value='';
+  buildIconGrid('icon-picker-grid','selectedIconId');
+  openModal('modal-new-project');setTimeout(()=>document.getElementById('proj-name-input').focus(),300);
+}
+function createProject(){
+  const name=document.getElementById('proj-name-input').value.trim();if(!name){showToast('Escribe un nombre');return;}
+  const p={id:'pr_'+Date.now(),name,iconId:selectedIconId,monthKey:currentMonthKey(),created:new Date().toISOString(),tickets:[]};
+  projects.unshift(p);save();renderHome();closeModal('modal-new-project');showToast('✓ Proyecto creado');
+}
+
+// ============ EDITAR PROYECTO ============
+function openEditProject(){
+  const p=getProject();if(!p)return;
+  editSelectedIconId=p.iconId||ICON_SHAPES[0].id;
+  document.getElementById('edit-proj-name-input').value=p.name;
+  buildIconGrid('edit-icon-picker-grid','editSelectedIconId');
+  openModal('modal-edit-project');
+  setTimeout(()=>document.getElementById('edit-proj-name-input').focus(),300);
+}
+function saveEditProject(){
+  const name=document.getElementById('edit-proj-name-input').value.trim();if(!name){showToast('Escribe un nombre');return;}
+  const p=getProject();p.name=name;p.iconId=editSelectedIconId;
+  save();
+  const icon=getIcon(p.iconId);
+  document.getElementById('proj-title').textContent=p.name;
+  document.getElementById('proj-header-icon').innerHTML=buildIconSVG(icon,28);
+  closeModal('modal-edit-project');renderHome();showToast('✓ Proyecto actualizado');
+}
+
+function buildIconGrid(gridId,varName){
+  const grid=document.getElementById(gridId);grid.innerHTML='';
+  const currentId=varName==='selectedIconId'?selectedIconId:editSelectedIconId;
+  ICON_SHAPES.forEach(icon=>{
+    const d=document.createElement('div');
+    d.className='icon-opt'+(icon.id===currentId?' selected':'');
+    if(icon.id===currentId)d.style.background='rgba(255,255,255,0.08)';
+    d.innerHTML=buildIconSVG(icon,28);
+    d.onclick=()=>{
+      if(varName==='selectedIconId')selectedIconId=icon.id;
+      else editSelectedIconId=icon.id;
+      grid.querySelectorAll('.icon-opt').forEach(x=>{x.classList.remove('selected');x.style.background='transparent';});
+      d.classList.add('selected');d.style.background='rgba(255,255,255,0.08)';
+    };
+    grid.appendChild(d);
+  });
+}
+
+// ============ EXPORT ============
+function openExportAll(){exportMode='all';document.getElementById('export-modal-title').textContent='Exportar todo';openModal('modal-export');}
+function openExportProject(){exportMode='project';document.getElementById('export-modal-title').textContent='Exportar proyecto';openModal('modal-export');}
+function openExportMonth(mk){exportMode='month';currentExportMonth=mk;document.getElementById('export-modal-title').textContent='Exportar '+monthLabel(mk);openModal('modal-export');}
+
+async function exportZip(){
+  closeModal('modal-export');showToast('⏳ Generando ZIP...');
+  const zip=new JSZip();let zipName='AEtickets.zip';
+  if(exportMode==='project'){
+    const p=getProject();const folder=zip.folder(p.name);
+    for(const t of p.tickets){const url=t.dataUrl||await dbGet(t.id);if(!url)continue;folder.file(t.filename,url.split(',')[1],{base64:true});}
+    zipName=p.name+'.zip';
+  }else if(exportMode==='month'){
+    const mk=currentExportMonth;
+    const mf=zip.folder(monthLabel(mk));
+    for(const p of projects.filter(x=>x.monthKey===mk)){
+      const pf=mf.folder(p.name);
+      for(const t of p.tickets){const url=t.dataUrl||await dbGet(t.id);if(!url)continue;pf.file(t.filename,url.split(',')[1],{base64:true});}
+    }
+    zipName='AEtickets_'+mk+'.zip';
+  }else{
+    const months=[...new Set(projects.map(p=>p.monthKey))];
+    for(const mk of months){
+      const mf=zip.folder(monthLabel(mk));
+      for(const p of projects.filter(x=>x.monthKey===mk)){
+        const pf=mf.folder(p.name);
+        for(const t of p.tickets){const url=t.dataUrl||await dbGet(t.id);if(!url)continue;pf.file(t.filename,url.split(',')[1],{base64:true});}
+      }
+    }
+    zipName='AEtickets_todo.zip';
+  }
+  const blob=await zip.generateAsync({type:'blob'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=zipName;a.click();
+  showToast('✓ ZIP listo');
+}
+
+async function shareTickets(){
+  closeModal('modal-export');if(!navigator.share){showToast('Usa la opción ZIP');return;}
+  const tickets=exportMode==='project'?getProject().tickets:exportMode==='month'?projects.filter(p=>p.monthKey===currentExportMonth).flatMap(p=>p.tickets):projects.flatMap(p=>p.tickets);
   const files=[];
-  for(const t of tickets){ const url=t.dataUrl||await getImage(t.id); if(!url)continue; const res=await fetch(url); const blob=await res.blob(); files.push(new File([blob],t.name+'.jpg',{type:'image/jpeg'})); }
-  try{await navigator.share({files,title:'Tickets de empresa'});}catch(e){if(e.name!=='AbortError')showToast('Error al compartir');}
+  for(const t of tickets){const url=t.dataUrl||await dbGet(t.id);if(!url)continue;const res=await fetch(url);const blob=await res.blob();files.push(new File([blob],t.filename,{type:'image/jpeg'}));}
+  try{await navigator.share({files,title:'AEtickets'});}catch(e){}
 }
-async function exportIndividual() {
-  closeModal('modal-export'); const tickets=await getExportTickets(); if(!tickets.length){showToast('Sin tickets');return;}
-  for(const t of tickets){ const url=t.dataUrl||await getImage(t.id); if(!url)continue; await new Promise(r=>setTimeout(r,200)); dl(url,t.name+'.jpg'); }
-  showToast(`⬇ ${tickets.length} tickets guardados`);
-}
-function showScreen(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-function goHome() { showScreen('screen-home'); renderHome(); }
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ============ UI ============
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function goHome(){showScreen('screen-home');renderHome();}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
 let toastTimer;
-function showToast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2000); }
-function showConfirm(title,msg,cb) { document.getElementById('confirm-title').textContent=title; document.getElementById('confirm-msg').textContent=msg; document.getElementById('confirm-ok-btn').onclick=()=>{closeConfirm();cb();}; document.getElementById('confirm-modal').classList.add('open'); }
-function closeConfirm() { document.getElementById('confirm-modal').classList.remove('open'); }
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2400);}
+function showConfirm(title,msg,cb){document.getElementById('confirm-title').textContent=title;document.getElementById('confirm-msg').textContent=msg;document.getElementById('confirm-ok-btn').onclick=()=>{closeConfirm();cb();};document.getElementById('confirm-modal').classList.add('open');}
+function closeConfirm(){document.getElementById('confirm-modal').classList.remove('open');}
+
 init();
+
+// ============ PWA ============
+let deferredPrompt=null;
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('install-banner').style.display='flex';});
+window.addEventListener('appinstalled',()=>{document.getElementById('install-banner').style.display='none';deferredPrompt=null;});
+function installApp(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;document.getElementById('install-banner').style.display='none';});}
+function dismissBanner(){document.getElementById('install-banner').style.display='none';}
 </script>
+
+<!-- BANNER INSTALACIÓN -->
+<div id="install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:999;background:#1a1916;border-top:1px solid #2a2825;padding:14px 20px 28px;align-items:center;gap:12px;">
+  <div style="width:40px;height:40px;flex-shrink:0;"><img src="icon-192.png" style="width:100%;border-radius:10px;"></div>
+  <div style="flex:1;">
+    <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;">Instalar AEtickets</div>
+    <div style="font-size:11px;color:#7a7570;margin-top:2px;">Añadir a pantalla de inicio</div>
+  </div>
+  <button onclick="dismissBanner()" style="background:transparent;border:none;color:#7a7570;font-size:20px;cursor:pointer;padding:4px;">✕</button>
+  <button onclick="installApp()" style="background:#e8c547;color:#0f0e0c;border:none;border-radius:10px;padding:10px 16px;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;cursor:pointer;">Instalar</button>
+</div>
 </body>
 </html>

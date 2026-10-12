@@ -1,9 +1,14 @@
 {
-  "appId": "com.mistickets.app",
-  "appName": "MisTickets",
+  "appId": "com.aerolaser.aetickets",
+  "appName": "AEtickets",
   "webDir": "www",
   "android": {
     "allowMixedContent": false,
     "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
   }
 }

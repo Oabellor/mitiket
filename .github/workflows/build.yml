@@ -1,4 +1,4 @@
-name: Build APK
+name: Build AEtickets APK
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Configurar Node.js
+      - name: Configurar Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -30,20 +30,18 @@ jobs:
       - name: Añadir plataforma Android
         run: npx cap add android
 
-      - name: Sincronizar archivos web
+      - name: Sincronizar web → Android
         run: npx cap sync android
 
       - name: Dar permisos a Gradle
         run: chmod +x android/gradlew
 
       - name: Compilar APK debug
-        run: |
-          cd android
-          ./gradlew assembleDebug --no-daemon
+        run: cd android && ./gradlew assembleDebug --no-daemon
 
       - name: Subir APK como artefacto
         uses: actions/upload-artifact@v4
         with:
-          name: MisTickets-APK
+          name: AEtickets-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
