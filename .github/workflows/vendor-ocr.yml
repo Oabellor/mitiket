@@ -1,0 +1,40 @@
+name: Empaquetar motor OCR
+
+on:
+  workflow_dispatch:
+  push:
+    paths: [ '.github/workflows/vendor-ocr.yml' ]
+
+permissions:
+  contents: write
+
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Descargar Tesseract.js + idioma español
+        run: |
+          mkdir -p /tmp/ocr && cd /tmp/ocr && npm init -y >/dev/null
+          npm i tesseract.js@5.1.1 tesseract.js-core@5.1.1 @tesseract.js-data/spa
+          find node_modules/@tesseract.js-data/spa -type f
+      - name: Copiar a www/ocr
+        run: |
+          D=www/ocr; mkdir -p $D
+          N=/tmp/ocr/node_modules
+          cp $N/tesseract.js/dist/tesseract.min.js $D/
+          cp $N/tesseract.js/dist/worker.min.js $D/
+          cp $N/tesseract.js-core/tesseract-core-simd-lstm.wasm.js $D/
+          cp $N/tesseract.js-core/tesseract-core-lstm.wasm.js $D/
+          cp $N/@tesseract.js-data/spa/4.0.0_best_int/spa.traineddata.gz $D/
+          ls -la $D
+      - name: Guardar en el repositorio
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add www/ocr
+          git commit -m "Motor OCR offline (Tesseract.js 5 + español)" || echo "sin cambios"
+          git push
