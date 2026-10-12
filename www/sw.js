@@ -1,6 +1,6 @@
-const CACHE = 'aetickets-v2';
+const CACHE = 'aetickets-v3';
 const ASSETS = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png',
-  '/ocr/tesseract.min.js', '/ocr/worker.min.js', '/ocr/aetocr.js', '/ocr/spa.traineddata.gz',
+  '/ocr/tesseract.min.js', '/ocr/worker.min.js', '/ocr/aetocr.js', '/ocr/spa.traineddata',
   '/ocr/tesseract-core-simd-lstm.wasm.js', '/ocr/tesseract-core-lstm.wasm.js'];
 
 self.addEventListener('install', e => {

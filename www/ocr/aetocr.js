@@ -156,7 +156,7 @@
         workerPath: b + 'worker.min.js',
         corePath: b,
         langPath: b,
-        gzip: true,
+        gzip: false,
         cacheMethod: 'none'
       }).catch(e => { workerPromise = null; throw e; });
     }
