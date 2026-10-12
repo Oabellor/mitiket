@@ -228,6 +228,17 @@ select.input-field option{background:var(--surface);color:var(--text)}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 input[type="file"]{display:none}
+/* OCR */
+.ocr-bar{display:none;align-items:center;gap:10px;padding:10px 12px;margin-bottom:14px;border-radius:var(--radius-sm);background:rgba(0,174,239,0.08);border:1px solid rgba(0,174,239,0.25);font-size:12px;color:var(--text2)}
+.ocr-bar.show{display:flex}
+.ocr-bar.done{background:rgba(0,168,150,0.08);border-color:rgba(0,168,150,0.3)}
+.ocr-bar.fail{background:var(--surface2);border-color:var(--border);color:var(--muted)}
+.ocr-spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(0,174,239,0.25);border-top-color:var(--accent);animation:ocrspin .8s linear infinite;flex-shrink:0}
+.ocr-bar.done .ocr-spin,.ocr-bar.fail .ocr-spin{display:none}
+@keyframes ocrspin{to{transform:rotate(360deg)}}
+.ocr-tag{display:none;margin-left:6px;padding:1px 6px;border-radius:4px;background:rgba(0,174,239,0.12);color:var(--accent-dark);font-size:9px;font-weight:600;letter-spacing:.5px;vertical-align:middle}
+.ocr-tag.show{display:inline-block}
+.input-field.ocr-filled{border-color:rgba(0,174,239,0.55);background:rgba(0,174,239,0.04)}
 </style>
 </head>
 <body>
@@ -405,8 +416,9 @@ input[type="file"]{display:none}
     <div class="modal-handle"></div>
     <div class="modal-title">Nuevo ticket</div>
     <div class="foto-preview"><img id="form-foto-img" src="" alt=""></div>
+    <div class="ocr-bar" id="ocr-bar"><div class="ocr-spin"></div><span id="ocr-msg">Leyendo ticket…</span></div>
     <div class="input-group">
-      <label class="input-label">Concepto</label>
+      <label class="input-label">Concepto<span class="ocr-tag" id="ocr-tag-concepto">AUTO</span></label>
       <select class="input-field" id="form-concepto" onchange="onConceptoChange()">
         <option value="">— Sin especificar —</option>
         <option value="Hotel">🏨 Hotel</option>
@@ -428,11 +440,11 @@ input[type="file"]{display:none}
       </div>
     </div>
     <div class="input-group">
-      <label class="input-label">Fecha del recibo</label>
+      <label class="input-label">Fecha del recibo<span class="ocr-tag" id="ocr-tag-fecha">AUTO</span></label>
       <input class="input-field" type="date" id="form-fecha">
     </div>
     <div class="input-group">
-      <label class="input-label">Importe (€)</label>
+      <label class="input-label">Importe (€)<span class="ocr-tag" id="ocr-tag-importe">AUTO</span></label>
       <input class="input-field" type="number" id="form-importe" placeholder="0.00" step="0.01" min="0">
     </div>
     <div style="display:flex;gap:10px;margin-top:8px;">
@@ -554,6 +566,8 @@ input[type="file"]{display:none}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="ocr/tesseract.min.js"></script>
+<script src="ocr/aetocr.js"></script>
 <script>
 if(typeof pdfjsLib!=='undefined')pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -840,6 +854,38 @@ function openTicketForm(){
   document.getElementById('workers-group').style.display='none';
   document.getElementById('worker-custom-input').value='';
   openModal('modal-ticket-form');
+  runOCR(pendingPhotoData.dataUrl);
+}
+
+// ============ OCR ============
+let ocrToken=0, ocrTouched={};
+['concepto','fecha','importe'].forEach(f=>{
+  const el=document.getElementById('form-'+f);
+  const mark=()=>{ocrTouched[f]=true;el.classList.remove('ocr-filled');document.getElementById('ocr-tag-'+f).classList.remove('show');};
+  el.addEventListener('input',mark);el.addEventListener('change',e=>{if(e.isTrusted)mark();});
+});
+function ocrReset(){
+  ocrTouched={};
+  ['concepto','fecha','importe'].forEach(f=>{document.getElementById('form-'+f).classList.remove('ocr-filled');document.getElementById('ocr-tag-'+f).classList.remove('show');});
+}
+function ocrBar(state,msg){const b=document.getElementById('ocr-bar');b.className='ocr-bar show'+(state?' '+state:'');document.getElementById('ocr-msg').textContent=msg;}
+async function runOCR(dataUrl){
+  ocrReset();
+  if(!window.AEOCR||!window.Tesseract){document.getElementById('ocr-bar').className='ocr-bar';return;}
+  const my=++ocrToken;
+  ocrBar('','Leyendo ticket…');
+  try{
+    const r=await AEOCR.read(dataUrl);
+    if(my!==ocrToken||!document.getElementById('modal-ticket-form').classList.contains('open'))return;
+    const filled=[];
+    const put=(f,v)=>{if(!v||ocrTouched[f])return;const el=document.getElementById('form-'+f);el.value=v;el.classList.add('ocr-filled');document.getElementById('ocr-tag-'+f).classList.add('show');filled.push(f);};
+    put('concepto',r.concepto);put('fecha',r.fecha);put('importe',r.importe);
+    if(filled.includes('concepto'))onConceptoChange();
+    if(filled.length)ocrBar('done','Campos rellenados automáticamente — revísalos antes de guardar');
+    else ocrBar('fail','No se ha podido leer el ticket — rellénalo a mano');
+  }catch(e){
+    if(my===ocrToken)ocrBar('fail','Lectura automática no disponible — rellénalo a mano');
+  }
 }
 function onConceptoChange(){const val=document.getElementById('form-concepto').value;const show=val==='Restaurante';document.getElementById('workers-group').style.display=show?'block':'none';if(show)renderWorkerChips();}
 function renderWorkerChips(){
@@ -848,6 +894,7 @@ function renderWorkerChips(){
 }
 function addCustomWorker(){const val=document.getElementById('worker-custom-input').value.trim();if(!val)return;if(![...WORKERS,...extraWorkers].includes(val))extraWorkers.push(val);if(!selectedWorkers.includes(val))selectedWorkers.push(val);document.getElementById('worker-custom-input').value='';renderWorkerChips();}
 async function saveTicketForm(){
+  ocrToken++;
   const concepto=document.getElementById('form-concepto').value;
   const importe=document.getElementById('form-importe').value;
   const fecha=document.getElementById('form-fecha').value;
@@ -856,7 +903,7 @@ async function saveTicketForm(){
   await saveTicket(pendingPhotoData,{concepto,importe,workers,fecha});
   pendingPhotoData=null;
 }
-async function skipTicketForm(){closeModal('modal-ticket-form');await saveTicket(pendingPhotoData,{});pendingPhotoData=null;}
+async function skipTicketForm(){ocrToken++;closeModal('modal-ticket-form');await saveTicket(pendingPhotoData,{});pendingPhotoData=null;}
 
 async function saveTicket(photoData,meta){
   const p=getProject();

@@ -1,5 +1,7 @@
-const CACHE = 'aetickets-v1';
-const ASSETS = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
+const CACHE = 'aetickets-v2';
+const ASSETS = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png',
+  '/ocr/tesseract.min.js', '/ocr/worker.min.js', '/ocr/aetocr.js', '/ocr/spa.traineddata.gz',
+  '/ocr/tesseract-core-simd-lstm.wasm.js', '/ocr/tesseract-core-lstm.wasm.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
